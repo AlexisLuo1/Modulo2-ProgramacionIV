@@ -1,0 +1,165 @@
+import sqlite3
+
+def conectar():
+    conn = sqlite3.connect("biblioteca.db")
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn
+
+def crear_tabla():
+    conn = conectar()
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS libros (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        titulo TEXT NOT NULL,
+        autor TEXT NOT NULL,
+        genero TEXT NOT NULL,
+        estado TEXT NOT NULL CHECK(estado IN ('Leído', 'No leído'))
+    );
+    """)
+    conn.commit()
+    conn.close()
+
+def agregar_libro():
+    titulo = input("Título: ")
+    autor = input("Autor: ")
+    genero = input("Género: ")
+    estado = input("Estado (Leído / No leído): ")
+
+    conn = conectar()
+    c = conn.cursor()
+    c.execute("INSERT INTO libros (titulo, autor, genero, estado) VALUES (?, ?, ?, ?)",
+              (titulo, autor, genero, estado))
+    conn.commit()
+    conn.close()
+    print("\n Libro agregado correctamente.\n")
+
+def ver_libros():
+    conn = conectar()
+    c = conn.cursor()
+    c.execute("SELECT * FROM libros")
+    libros = c.fetchall()
+    conn.close()
+
+    if not libros:
+        print("\n No hay libros registrados.\n")
+        return
+
+    print("\n LISTADO DE LIBROS\n")
+    for libro in libros:
+        print(f"ID: {libro[0]}")
+        print(f" Título: {libro[1]}")
+        print(f" Autor: {libro[2]}")
+        print(f" Género: {libro[3]}")
+        print(f" Estado: {libro[4]}\n")
+
+def actualizar_libro():
+    ver_libros()
+    libro_id = input("Ingrese el ID del libro a actualizar: ")
+
+    print("\n¿Qué desea modificar?")
+    print("1. Título")
+    print("2. Autor")
+    print("3. Género")
+    print("4. Estado de lectura")
+    opcion = input("Opción: ")
+
+    campos = {
+        "1": "titulo",
+        "2": "autor",
+        "3": "genero",
+        "4": "estado"
+    }
+
+    if opcion not in campos:
+        print("\n Opción no válida.\n")
+        return
+
+    nuevo_valor = input(f"Nuevo valor para {campos[opcion]}: ")
+
+    conn = conectar()
+    c = conn.cursor()
+    c.execute(f"UPDATE libros SET {campos[opcion]} = ? WHERE id = ?", (nuevo_valor, libro_id))
+    conn.commit()
+    conn.close()
+
+    print("\n✔ Libro actualizado correctamente.\n")
+
+def eliminar_libro():
+    ver_libros()
+    libro_id = input("Ingrese el ID del libro a eliminar: ")
+
+    conn = conectar()
+    c = conn.cursor()
+    c.execute("DELETE FROM libros WHERE id = ?", (libro_id,))
+    conn.commit()
+    conn.close()
+
+    print("\n🗑 Libro eliminado correctamente.\n")
+
+def buscar_libros():
+    print("\nBuscar por:")
+    print("1. Título")
+    print("2. Autor")
+    print("3. Género")
+    opcion = input("Opción: ")
+
+    campos = {
+        "1": "titulo",
+        "2": "autor",
+        "3": "genero"
+    }
+
+    if opcion not in campos:
+        print("\n Opción no válida.\n")
+        return
+
+    valor = input(f"Ingrese {campos[opcion]} a buscar: ")
+
+    conn = conectar()
+    c = conn.cursor()
+    c.execute(f"SELECT * FROM libros WHERE {campos[opcion]} LIKE ?", ('%' + valor + '%',))
+    resultados = c.fetchall()
+    conn.close()
+
+    if not resultados:
+        print("\n No se encontraron resultados.\n")
+        return
+
+    print("\n RESULTADOS DE BÚSQUEDA\n")
+    for libro in resultados:
+        print(f"ID: {libro[0]}, Título: {libro[1]}, Autor: {libro[2]}, Género: {libro[3]}, Estado: {libro[4]}")
+
+def menu():
+    crear_tabla()
+
+    while True:
+        print("\n=========  BIBLIOTECA PERSONAL  =========")
+        print("1. Agregar nuevo libro")
+        print("2. Actualizar libro")
+        print("3. Eliminar libro")
+        print("4. Ver listado de libros")
+        print("5. Buscar libros")
+        print("6. Salir")
+        print("=============================================")
+
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            agregar_libro()
+        elif opcion == "2":
+            actualizar_libro()
+        elif opcion == "3":
+            eliminar_libro()
+        elif opcion == "4":
+            ver_libros()
+        elif opcion == "5":
+            buscar_libros()
+        elif opcion == "6":
+            print("\n¡Hasta luego!\n")
+            break
+        else:
+            print("\nOpción no válida.\n")
+
+if __name__ == "__main__":
+    menu()
